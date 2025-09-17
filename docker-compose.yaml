@@ -1,45 +1,44 @@
 services:
- db:
-   image: postgres:17
-   container_name: db_posgres
-   env_file: .env.local
-   restart: always
-   environment:
-     POSTGRES_DB: ${DATABASE_NAME}
-     POSTGRES_USER: ${DATABASE_USERNAME}
-     POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-   ports:
-     - "7501:5432"
-   volumes:
-     - postgres_data:/var/lib/postgresql/data
-   networks:
-     - backend
-   hostname: postgres
+  db:
+    image: postgres:17
+    container_name: db_posgres
+    env_file: .env
+    restart: always
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    hostname: db 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
- backend:
-   build: .
-   container_name: backend
-   ports:
-     - "8000:8000"
-   depends_on:
-     - db
-   environment:
-     DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-     DEBUG: ${DEBUG}
-     DJANGO_LOGLEVEL: ${DJANGO_LOGLEVEL}
-     DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
-     DATABASE_ENGINE: ${DATABASE_ENGINE}
-     DATABASE_NAME: ${DATABASE_NAME}
-     DATABASE_USERNAME: ${DATABASE_USERNAME}
- 
-     DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-     DATABASE_HOST: ${DATABASE_HOST}
-     DATABASE_PORT: ${DATABASE_PORT}
-   env_file:
-     - .env.local
+  backend:
+    build: ./backend
+    container_name: backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - backend
+
 
 volumes:
-   postgres_data:
+  postgres_data:
+
 
 networks:
   backend:
